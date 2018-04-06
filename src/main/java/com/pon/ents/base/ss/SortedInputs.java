@@ -2,6 +2,7 @@ package com.pon.ents.base.ss;
 
 import java.util.Comparator;
 
+import com.google.common.primitives.UnsignedBytes;
 import com.pon.ents.base.io.Input;
 import com.pon.ents.base.io.Inputs;
 import com.pon.ents.base.io.IoBuffer;
@@ -108,6 +109,8 @@ public abstract class SortedInputs {
 
     /**
      * Returns an {@link Input} that is greater than all other {@link Input}s.
+     * <p>
+     * This happens to be an infinite series of {@link UnsignedBytes#MAX_VALUE}.
      */
     public static Input maximum() {
         return new MaximumInput();

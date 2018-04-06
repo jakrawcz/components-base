@@ -134,6 +134,36 @@ public class SsTableTest {
     }
 
     @Test
+    public void selectsFromPresentToPresent() {
+        // given
+        SsTable ssTable = SsTables.from(IoBuffers.of(0, 0, 1), IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1));
+
+        // when
+        List<IoBuffer> selectedIoBuffers = buffer(ssTable.iterator(
+                Inputs.fromByteArray(new byte[] {0, 0, 1}),
+                Inputs.fromByteArray(new byte[] {0, 1})));
+
+        // then
+        MatcherAssert.assertThat(selectedIoBuffers, Matchers.equalTo(Arrays.asList(
+                IoBuffers.of(0, 0, 1), IoBuffers.of(0, 0, 2))));
+    }
+
+    @Test
+    public void selectsFromNonPresentToNonPresent() {
+        // given
+        SsTable ssTable = SsTables.from(IoBuffers.of(0, 0, 1), IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1));
+
+        // when
+        List<IoBuffer> selectedIoBuffers = buffer(ssTable.iterator(
+                Inputs.fromByteArray(new byte[] {0, 0, 0, 1}),
+                Inputs.fromByteArray(new byte[] {0, 0, 2, 1})));
+
+        // then
+        MatcherAssert.assertThat(selectedIoBuffers, Matchers.equalTo(Arrays.asList(
+                IoBuffers.of(0, 0, 1), IoBuffers.of(0, 0, 2))));
+    }
+
+    @Test
     public void addingSsTablesReturnsMergingView() {
         // given
         SsTable first = SsTables.from(IoBuffers.of(0, 0, 1), IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1));
@@ -145,9 +175,24 @@ public class SsTableTest {
         // then
         List<IoBuffer> addedIoBuffers = buffer(added.iterator(
                 Inputs.fromByteArray(new byte[] {0, 0, 0}),
-                Inputs.fromByteArray(new byte[] {0, 1, 0}))); // TODO: FEATURE: ListSsTable does not support unbounded!
+                Inputs.fromByteArray(new byte[] {7})));
         MatcherAssert.assertThat(addedIoBuffers, Matchers.equalTo(Arrays.asList(
                 IoBuffers.of(0, 0, 1), IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1), IoBuffers.of(0, 1))));
+    }
+
+    @Test
+    public void mergingViewIteratesUnbounded() {
+        // given
+        SsTable first = SsTables.from(IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1));
+        SsTable second = SsTables.from(IoBuffers.of(0, 1), IoBuffers.of(7));
+
+        // when
+        SsTable added = SsTables.add(first, second);
+
+        // then
+        List<IoBuffer> addedIoBuffers = buffer(added.iterator());
+        MatcherAssert.assertThat(addedIoBuffers, Matchers.equalTo(Arrays.asList(
+                IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1), IoBuffers.of(0, 1), IoBuffers.of(7))));
     }
 
     private List<IoBuffer> buffer(CloseableIterator<Input> iterator) {

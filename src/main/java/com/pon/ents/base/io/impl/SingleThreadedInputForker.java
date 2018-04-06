@@ -1,7 +1,9 @@
 package com.pon.ents.base.io.impl;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.PriorityQueue;
+import java.util.Queue;
+
+import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
@@ -16,14 +18,14 @@ public class SingleThreadedInputForker implements InputForker {
 
     private final Input input;
     private final IoBufferBuilder builder;
-    private final SortedSet<ForkedInput> forkedInputs;
+    private final Queue<ForkedInput> forkedInputs;
 
     private int truncatedByteCount;
 
     public SingleThreadedInputForker(Input input) {
         this.input = input;
         this.builder = new IoBufferBuilder();
-        this.forkedInputs = new TreeSet<>();
+        this.forkedInputs = new PriorityQueue<>();
         this.truncatedByteCount = STILL_OPENING;
     }
 
@@ -49,15 +51,10 @@ public class SingleThreadedInputForker implements InputForker {
     }
 
     @Override
-    public void opened() {
-        Preconditions.checkState(truncatedByteCount == STILL_OPENING, "already notified");
+    public void close() {
+        Preconditions.checkState(truncatedByteCount == STILL_OPENING, "already closed");
         this.truncatedByteCount = 0;
         truncateToLowestAt();
-    }
-
-    @Override
-    public void close() {
-        input.close();
     }
 
     private void onLowestAtIncreased() {
@@ -68,7 +65,11 @@ public class SingleThreadedInputForker implements InputForker {
     }
 
     private void truncateToLowestAt() {
-        ForkedInput lowestAtForkedInput = forkedInputs.first();
+        @Nullable ForkedInput lowestAtForkedInput = forkedInputs.peek();
+        if (lowestAtForkedInput == null) {
+            input.close();
+            return;
+        }
         int lowestNonTruncatedAt = lowestAtForkedInput.nonTruncatedAt();
         int toTruncate = lowestNonTruncatedAt - truncatedByteCount;
         if (toTruncate > 0) {
@@ -79,7 +80,8 @@ public class SingleThreadedInputForker implements InputForker {
     private void truncate(int additionalByteCount) {
         byte[] buffer = builder.access();
         int readAt = builder.declareRead();
-        System.arraycopy(buffer, additionalByteCount, buffer, 0, readAt);
+        // TODO: PERFORMANCE: replace with a growable/shrinkable ring byte buffer
+        System.arraycopy(buffer, additionalByteCount, buffer, 0, readAt - additionalByteCount);
         builder.declareErased(additionalByteCount);
         this.truncatedByteCount += additionalByteCount;
     }
@@ -120,7 +122,7 @@ public class SingleThreadedInputForker implements InputForker {
         int at = toTruncated(nonTruncatedAt);
         int readAt = builder.declareRead();
         if (at < readAt) {
-            return builder.access()[at];
+            return builder.access()[at] & 255;
         }
         Verify.verify(readAt == at);
         int read = input.read();
@@ -145,8 +147,8 @@ public class SingleThreadedInputForker implements InputForker {
     }
 
     private void onAtIncreased(ForkedInput forkedInput) {
-        boolean lowestAtWillIncrease = forkedInput == forkedInputs.first();
-        forkedInputs.remove(forkedInput);
+        boolean lowestAtWillIncrease = forkedInput == forkedInputs.peek();
+        Verify.verify(forkedInputs.remove(forkedInput));
         forkedInputs.add(forkedInput);
         if (lowestAtWillIncrease) {
             onLowestAtIncreased();
@@ -154,13 +156,10 @@ public class SingleThreadedInputForker implements InputForker {
     }
 
     private void onClosed(ForkedInput closedForkedInput) {
-        ForkedInput lowestAtForkedInput = forkedInputs.first();
-        if (lowestAtForkedInput == closedForkedInput) {
-            forkedInputs.remove(closedForkedInput);
+        boolean lowestAtWillIncrease = closedForkedInput == forkedInputs.peek();
+        Verify.verify(forkedInputs.remove(closedForkedInput));
+        if (lowestAtWillIncrease) {
             onLowestAtIncreased();
-        } else {
-            boolean removed = forkedInputs.remove(closedForkedInput);
-            Verify.verify(removed);
         }
     }
 
@@ -187,31 +186,35 @@ public class SingleThreadedInputForker implements InputForker {
 
         @Override
         public int read(byte[] buffer, int offset, int length) {
+            checkNotClosed();
             int read = readAt(nonTruncatedAt, buffer, offset, length);
             if (read != -1) {
                 this.nonTruncatedAt += read;
+                onAtIncreased(this);
             }
-            onAtIncreased(this);
             return read;
         }
 
         @Override
         public int read() {
+            checkNotClosed();
             int read = readAt(nonTruncatedAt);
             if (read != -1) {
                 ++this.nonTruncatedAt;
+                onAtIncreased(this);
             }
-            onAtIncreased(this);
             return read;
         }
 
         @Override
         public long remaining() {
+            checkNotClosed();
             return remainingAt(nonTruncatedAt);
         }
 
         @Override
         public int compareTo(ForkedInput other) {
+            checkNotClosed();
             int atComparison = Integer.compare(nonTruncatedAt, other.nonTruncatedAt());
             if (atComparison != 0) {
                 return atComparison;

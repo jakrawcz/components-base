@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.pon.ents.base.io.Input;
+import com.pon.ents.base.io.InputOpeners;
 import com.pon.ents.base.io.IoBuffer;
 import com.pon.ents.base.ss.impl.EmptySsTable;
 import com.pon.ents.base.ss.impl.ListSsTable;
@@ -54,7 +56,7 @@ public abstract class SsTables {
      */
     public static SsTable from(IoBuffer... ioBuffers) {
         Arrays.sort(ioBuffers, SortedIoBuffers.comparator());
-        return new ListSsTable(Arrays.asList(ioBuffers));
+        return fromSorted(Arrays.asList(ioBuffers));
     }
 
     /**
@@ -65,6 +67,10 @@ public abstract class SsTables {
         List<IoBuffer> sortedIoBuffers = Streams.stream(ioBuffers)
                 .sorted(SortedIoBuffers.comparator())
                 .collect(Collectors.toList());
-        return new ListSsTable(sortedIoBuffers);
+        return fromSorted(sortedIoBuffers);
+    }
+
+    private static SsTable fromSorted(List<IoBuffer> sortedIoBuffers) {
+        return new ListSsTable(Lists.transform(sortedIoBuffers, InputOpeners::ofIoBuffer));
     }
 }

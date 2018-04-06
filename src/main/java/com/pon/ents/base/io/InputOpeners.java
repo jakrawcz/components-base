@@ -1,23 +1,18 @@
 package com.pon.ents.base.io;
 
 import com.pon.ents.base.closeable.RuntimeCloseable;
+import com.pon.ents.base.io.impl.IoBufferInputOpener;
 import com.pon.ents.base.io.impl.SingleThreadedInputForker;
 
 public abstract class InputOpeners {
 
     /**
-     * An {@link InputOpener} that wraps and forks some {@link Input}, and thus needs
-     * {@link RuntimeCloseable#close() closing}.
+     * An {@link InputOpener} that wraps and forks some {@link Input}.
+     * <p>
+     * Closing the {@link InputForker} does not close the underlying {@link Input}, but declares that no more opening
+     * will occur and is strictly required.
      */
     public interface InputForker extends InputOpener, RuntimeCloseable {
-
-        /**
-         * Notifies this {@link InputForker} that all the {@link #open() opening} was already done.
-         * <p>
-         * This will be used by an implementation for performance enhancement, but it is perfectly legal to never call
-         * this method.
-         */
-        void opened();
     }
 
     /**
@@ -35,5 +30,12 @@ public abstract class InputOpeners {
      */
     public static InputForker forkingForOneThread(Input input) {
         return new SingleThreadedInputForker(input);
+    }
+
+    /**
+     * Returns an {@link InputOpener} that will use the given {@link IoBuffer}.
+     */
+    public static InputOpener ofIoBuffer(IoBuffer ioBuffer) {
+        return new IoBufferInputOpener(ioBuffer);
     }
 }

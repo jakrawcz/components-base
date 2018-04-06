@@ -1,40 +1,45 @@
 package com.pon.ents.base.ss.impl;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 
 import com.google.common.collect.Iterators;
 import com.pon.ents.base.closeable.CloseableIterator;
 import com.pon.ents.base.closeable.CloseableIterators;
 import com.pon.ents.base.io.Input;
-import com.pon.ents.base.io.Inputs;
-import com.pon.ents.base.io.IoBuffer;
-import com.pon.ents.base.ss.SortedIoBuffers;
+import com.pon.ents.base.io.InputOpeners;
+import com.pon.ents.base.io.InputOpeners.InputForker;
+import com.pon.ents.base.ss.SortedInputs;
 import com.pon.ents.base.ss.SsTable;
 
 public class ListSsTable implements SsTable {
 
-    private final List<IoBuffer> ioBuffers;
+    private static final Comparator<? super Supplier<Input>> COMPARATOR =
+            Comparator.comparing(Supplier::get, SortedInputs::compare);
 
-    public ListSsTable(List<IoBuffer> ioBuffers) {
-        this.ioBuffers = ioBuffers;
+    private final List<? extends Supplier<Input>> inputSuppliers;
+
+    public ListSsTable(List<? extends Supplier<Input>> inputSuppliers) {
+        this.inputSuppliers = inputSuppliers;
     }
 
     @Override
-    public CloseableIterator<Input> iterator(Input fromInput, Input toInput) {
-        IoBuffer from = Inputs.toIoBuffer(fromInput);
-        int fromSearchResult = Collections.binarySearch(ioBuffers, from, SortedIoBuffers.comparator());
-        int fromIndex = fromSearchResult < 0 ? -fromSearchResult - 1 : fromSearchResult;
-
-        if (fromIndex == ioBuffers.size()) {
+    public CloseableIterator<Input> iterator(Input from, Input to) {
+        int fromIndex = searchFor(from);
+        if (fromIndex == inputSuppliers.size()) {
             return CloseableIterators.empty();
         }
+        int toIndex = searchFor(to);
+        return CloseableIterators.adapt(Iterators.transform(
+                inputSuppliers.subList(fromIndex, toIndex).iterator(), Supplier::get));
+    }
 
-        IoBuffer to = Inputs.toIoBuffer(toInput);
-        int toSearchResult = Collections.binarySearch(ioBuffers, to, SortedIoBuffers.comparator());
-        int toIndex = toSearchResult < 0 ? -toSearchResult - 1 : toSearchResult + 1;
-
-        List<IoBuffer> selectedIoBuffers = ioBuffers.subList(fromIndex, toIndex);
-        return CloseableIterators.adapt(Iterators.transform(selectedIoBuffers.iterator(), Inputs::fromIoBuffer));
+    private int searchFor(Input input) {
+        try (InputForker inputForker = InputOpeners.forkingForOneThread(input)) {
+            int searchResult = Collections.binarySearch(inputSuppliers, inputForker, COMPARATOR);
+            return searchResult < 0 ? -searchResult - 1 : searchResult;
+        }
     }
 }
