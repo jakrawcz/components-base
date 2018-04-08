@@ -6,6 +6,7 @@ import java.util.Iterator;
 
 import com.google.common.collect.Iterables;
 import com.pon.ents.base.closeable.impl.CompositeRuntimeCloseable;
+import com.pon.ents.base.proxy.Proxies;
 
 public abstract class RuntimeCloseables {
 
@@ -41,5 +42,12 @@ public abstract class RuntimeCloseables {
      */
     public static RuntimeCloseable composite(Iterator<? extends RuntimeCloseable> runtimeCloseables) {
         return new CompositeRuntimeCloseable(runtimeCloseables);
+    }
+
+    /**
+     * Returns a proxy to an "already closed" instance of the given {@link RuntimeCloseable} class.
+     */
+    public static <T extends RuntimeCloseable> T closed(Class<T> cls) {
+        return Proxies.throwing(cls, () -> new IllegalStateException("already closed"));
     }
 }

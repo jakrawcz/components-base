@@ -1,7 +1,7 @@
 package com.pon.ents.base.ss.impl;
 
-import com.pon.ents.base.closeable.CloseableIterator;
 import com.pon.ents.base.io.Input;
+import com.pon.ents.base.serie.Serie;
 import com.pon.ents.base.ss.SortedInputs;
 import com.pon.ents.base.ss.SsTable;
 
@@ -18,7 +18,7 @@ public class SubSsTable implements SsTable {
     }
 
     @Override
-    public CloseableIterator<Input> iterator(Input furtherFrom, Input earlierTo) {
-        return underlying.iterator(SortedInputs.greaterOf(from, furtherFrom), SortedInputs.lesserOf(earlierTo, to));
+    public Serie<Input> get(Input furtherFrom, Input earlierTo) {
+        return underlying.get(SortedInputs.greaterOf(from, furtherFrom), SortedInputs.lesserOf(earlierTo, to));
     }
 }

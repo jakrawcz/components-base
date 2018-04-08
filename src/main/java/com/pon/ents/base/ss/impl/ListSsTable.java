@@ -5,12 +5,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
 
-import com.google.common.collect.Iterators;
-import com.pon.ents.base.closeable.CloseableIterator;
-import com.pon.ents.base.closeable.CloseableIterators;
 import com.pon.ents.base.io.Input;
 import com.pon.ents.base.io.InputOpeners;
 import com.pon.ents.base.io.InputOpeners.InputForker;
+import com.pon.ents.base.serie.Serie;
+import com.pon.ents.base.serie.Series;
 import com.pon.ents.base.ss.SortedInputs;
 import com.pon.ents.base.ss.SsTable;
 
@@ -26,14 +25,13 @@ public class ListSsTable implements SsTable {
     }
 
     @Override
-    public CloseableIterator<Input> iterator(Input from, Input to) {
+    public Serie<Input> get(Input from, Input to) {
         int fromIndex = searchFor(from);
         if (fromIndex == inputSuppliers.size()) {
-            return CloseableIterators.empty();
+            return Series.empty();
         }
         int toIndex = searchFor(to);
-        return CloseableIterators.adapt(Iterators.transform(
-                inputSuppliers.subList(fromIndex, toIndex).iterator(), Supplier::get));
+        return Series.of(inputSuppliers.subList(fromIndex, toIndex)).transform(Supplier::get);
     }
 
     private int searchFor(Input input) {

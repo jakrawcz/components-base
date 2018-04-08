@@ -1,15 +1,13 @@
 package com.pon.ents.base.io;
 
-import java.util.Iterator;
-
-import com.google.common.collect.Iterators;
-import com.pon.ents.base.closeable.CloseableIterator;
 import com.pon.ents.base.io.impl.ByteArrayInput;
 import com.pon.ents.base.io.impl.ByteInput;
-import com.pon.ents.base.io.impl.CloseRemainingIterator;
 import com.pon.ents.base.io.impl.ConcatenatingInput;
 import com.pon.ents.base.io.impl.EmptyInput;
 import com.pon.ents.base.io.impl.LimitedInput;
+import com.pon.ents.base.serie.Serie;
+import com.pon.ents.base.serie.Series;
+import com.pon.ents.base.serie.impl.OpenedResourceClosingSerie;
 
 public abstract class Inputs {
 
@@ -63,28 +61,17 @@ public abstract class Inputs {
      * not yet read {@link Input}s will be closed.
      */
     public static Input concat(Input... inputs) {
-        return concat(Iterators.forArray(inputs));
-    }
-
-    /**
-     * Returns an {@link Input} that reads from the subsequent {@link Input}s.
-     * <p>
-     * It is assumed that the given {@link Input}s are already opened and now merely iterated over (e.g. from a backing
-     * list), upon {@link Input#close() closing}, all the remaining (not yet read) {@link Input}s will be closed.
-     */
-    public static Input concat(Iterator<Input> inputIterator) {
-        return concat(new CloseRemainingIterator<>(inputIterator));
+        return concat(new OpenedResourceClosingSerie<>(Series.of(inputs)));
     }
 
     /**
      * Returns an {@link Input} that reads from subsequent {@link Input}s.
      * <p>
-     * Upon {@link Input#close() closing}, the {@link CloseableIterator} itself will be closed, without requesting any
-     * remaining {@link Input}s (and thus, without closing them - this assumes that the {@link Input}s are not already
-     * opened, contrary to the {@link #concat(Iterator)} method).
+     * Upon {@link Input#close() closing}, the {@link Serie} itself will be closed, without requesting any remaining
+     * {@link Input}s.
      */
-    public static Input concat(CloseableIterator<Input> inputCloseableIterator) {
-        return new ConcatenatingInput(inputCloseableIterator);
+    public static Input concat(Serie<Input> inputSerie) {
+        return new ConcatenatingInput(inputSerie);
     }
 
     /**

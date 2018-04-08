@@ -22,7 +22,7 @@ import com.pon.ents.base.reflector.impl.Types;
 public interface TypeReflector {
 
     /**
-     * Returns the same
+     * Returns the same {@link Type} but parameterized with different type arguments.
      */
     default TypeReflector withTypeArguments(TypeReflector... typeArguments) {
         Class<?> rawClass = raw();

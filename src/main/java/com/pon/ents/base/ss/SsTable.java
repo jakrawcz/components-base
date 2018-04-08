@@ -1,7 +1,7 @@
 package com.pon.ents.base.ss;
 
-import com.pon.ents.base.closeable.CloseableIterator;
 import com.pon.ents.base.io.Input;
+import com.pon.ents.base.serie.Serie;
 import com.pon.ents.base.ss.impl.SubSsTable;
 
 /**
@@ -16,29 +16,28 @@ import com.pon.ents.base.ss.impl.SubSsTable;
 public interface SsTable {
 
     /**
-     * Returns a {@link CloseableIterator} of sorted strings equal to or greater than the given {@code from} and lesser
-     * than {@code to}.
+     * Returns a {@link Serie} of sorted strings equal to or greater than the given {@code from} and lesser than the
+     * given {@code to}.
      * <p>
-     * The {@link Iterator#next provided} {@link Input}s must be consumed sequentially - upon advancing, the previously
+     * The {@link Serie#next provided} {@link Input}s must be consumed sequentially - upon advancing, the previously
      * returned {@link Input} will no longer be valid (and reading it will result in unspecified behavior). The consumer
      * is not required to {@link Input#close()} any of these {@link Input}s (but closing each of them once will of
-     * course be legal). Closing the {@link CloseableIterator} itself will also invalidate the last returned
-     * {@link Input}.
+     * course be legal). Closing the {@link Serie} itself will also invalidate the last returned {@link Input}.
      */
-    CloseableIterator<Input> iterator(Input from, Input to);
+    Serie<Input> get(Input from, Input to);
 
     /**
      * Returns an {@link #iterator(Input, Input)} that will go to the end.
      */
-    default CloseableIterator<Input> iterator(Input from) {
-        return iterator(from, SortedInputs.maximum());
+    default Serie<Input> get(Input from) {
+        return get(from, SortedInputs.maximum());
     }
 
     /**
      * Returns an {#iterator(Input)} that will start from the beginning.
      */
-    default CloseableIterator<Input> iterator() {
-        return iterator(SortedInputs.minimum());
+    default Serie<Input> get() {
+        return get(SortedInputs.minimum());
     }
 
     /**

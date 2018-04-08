@@ -3,19 +3,17 @@ package com.pon.ents.base.ss;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import com.google.common.collect.Streams;
-import com.pon.ents.base.closeable.CloseableIterator;
 import com.pon.ents.base.io.Input;
 import com.pon.ents.base.io.Inputs;
 import com.pon.ents.base.io.IoBuffer;
 import com.pon.ents.base.io.IoBuffers;
 import com.pon.ents.base.io.Sizes;
+import com.pon.ents.base.serie.Serie;
 import com.pon.ents.base.ss.impl.BlockSsIndexer;
 import com.pon.ents.base.ss.impl.IoBufferSsIndexEntry;
 import com.pon.ents.base.ss.impl.SsIndex;
@@ -139,7 +137,7 @@ public class SsTableTest {
         SsTable ssTable = SsTables.from(IoBuffers.of(0, 0, 1), IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1));
 
         // when
-        List<IoBuffer> selectedIoBuffers = buffer(ssTable.iterator(
+        List<IoBuffer> selectedIoBuffers = buffer(ssTable.get(
                 Inputs.fromByteArray(new byte[] {0, 0, 1}),
                 Inputs.fromByteArray(new byte[] {0, 1})));
 
@@ -154,7 +152,7 @@ public class SsTableTest {
         SsTable ssTable = SsTables.from(IoBuffers.of(0, 0, 1), IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1));
 
         // when
-        List<IoBuffer> selectedIoBuffers = buffer(ssTable.iterator(
+        List<IoBuffer> selectedIoBuffers = buffer(ssTable.get(
                 Inputs.fromByteArray(new byte[] {0, 0, 0, 1}),
                 Inputs.fromByteArray(new byte[] {0, 0, 2, 1})));
 
@@ -173,7 +171,7 @@ public class SsTableTest {
         SsTable added = SsTables.add(first, second);
 
         // then
-        List<IoBuffer> addedIoBuffers = buffer(added.iterator(
+        List<IoBuffer> addedIoBuffers = buffer(added.get(
                 Inputs.fromByteArray(new byte[] {0, 0, 0}),
                 Inputs.fromByteArray(new byte[] {7})));
         MatcherAssert.assertThat(addedIoBuffers, Matchers.equalTo(Arrays.asList(
@@ -190,15 +188,13 @@ public class SsTableTest {
         SsTable added = SsTables.add(first, second);
 
         // then
-        List<IoBuffer> addedIoBuffers = buffer(added.iterator());
+        List<IoBuffer> addedIoBuffers = buffer(added.get());
         MatcherAssert.assertThat(addedIoBuffers, Matchers.equalTo(Arrays.asList(
                 IoBuffers.of(0, 0, 2), IoBuffers.of(0, 1), IoBuffers.of(0, 1), IoBuffers.of(7))));
     }
 
-    private List<IoBuffer> buffer(CloseableIterator<Input> iterator) {
-        List<IoBuffer> list = Streams.stream(iterator).map(Inputs::toIoBuffer).collect(Collectors.toList());
-        iterator.close();
-        return list;
+    private List<IoBuffer> buffer(Serie<Input> serie) {
+        return serie.transform(Inputs::toIoBuffer).toList();
     }
 
     private IoBuffer greaterOf(IoBuffer first, IoBuffer second) {

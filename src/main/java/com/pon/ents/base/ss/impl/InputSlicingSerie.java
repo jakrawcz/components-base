@@ -1,31 +1,38 @@
 package com.pon.ents.base.ss.impl;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.AbstractIterator;
-import com.pon.ents.base.closeable.CloseableIterator;
-import com.pon.ents.base.io.Input;
+import javax.annotation.Nullable;
 
-public class InputSlicingCloseableIterator extends AbstractIterator<Input> implements CloseableIterator<Input> {
+import com.google.common.base.Preconditions;
+import com.pon.ents.base.io.Input;
+import com.pon.ents.base.serie.Serie;
+
+public class InputSlicingSerie implements Serie<Input> {
 
     private final Input input;
     private final Slice slice;
     private final SsLengthCodec lengthCodec;
 
-    public InputSlicingCloseableIterator(Input input, SsLengthCodec lengthCodec) {
+    public InputSlicingSerie(Input input, SsLengthCodec lengthCodec) {
         this.input = input;
         this.slice = new Slice();
         this.lengthCodec = lengthCodec;
     }
 
     @Override
-    protected Input computeNext() {
+    @Nullable
+    public Input next() {
         slice.skipRest();
         long length = lengthCodec.decode(input);
         if (length == -1) {
-            return endOfData();
+            return null;
         }
         slice.limitTo(length);
         return slice;
+    }
+
+    @Override
+    public long remaining() {
+        return -1;
     }
 
     @Override

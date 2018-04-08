@@ -25,7 +25,7 @@ public class InputFromInputStream implements Input {
         checkNotClosed();
         try {
             int read = underlying.read(buffer, offset, length);
-            if (remaining == -1) { // TODO: CONSIDER: the known/unknown distinction is strong; specialize two classes?
+            if (remaining == -1) { // TODO: CONSIDER: the known/unknown distinction is strong; specialize into classes?
                 if (read == -1) {
                     this.remaining = 0;
                 }

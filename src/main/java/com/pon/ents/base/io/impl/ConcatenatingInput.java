@@ -2,18 +2,18 @@ package com.pon.ents.base.io.impl;
 
 import javax.annotation.Nullable;
 
-import com.pon.ents.base.closeable.CloseableIterator;
 import com.pon.ents.base.io.Input;
+import com.pon.ents.base.serie.Serie;
 
 public class ConcatenatingInput implements Input {
 
-    private final CloseableIterator<Input> inputCloseableIterator;
+    private final Serie<Input> inputSerie;
 
     @Nullable
     private Input currentInput;
 
-    public ConcatenatingInput(CloseableIterator<Input> inputCloseableIterator) {
-        this.inputCloseableIterator = inputCloseableIterator;
+    public ConcatenatingInput(Serie<Input> inputSerie) {
+        this.inputSerie = inputSerie;
         this.currentInput = null;
     }
 
@@ -21,10 +21,11 @@ public class ConcatenatingInput implements Input {
     public int read(byte[] buffer, int offset, int length) {
         while (true) {
             if (currentInput == null) {
-                if (!inputCloseableIterator.hasNext()) {
+                @Nullable Input next = inputSerie.next();
+                if (next == null) {
                     return -1;
                 }
-                this.currentInput = inputCloseableIterator.next();
+                this.currentInput = next;
             }
             int read = currentInput.read(buffer, offset, length);
             if (read != -1) {
@@ -38,10 +39,11 @@ public class ConcatenatingInput implements Input {
     public int read() {
         while (true) {
             if (currentInput == null) {
-                if (!inputCloseableIterator.hasNext()) {
+                @Nullable Input next = inputSerie.next();
+                if (next == null) {
                     return -1;
                 }
-                this.currentInput = inputCloseableIterator.next();
+                this.currentInput = next;
             }
             int read = currentInput.read();
             if (read != -1) {
@@ -53,29 +55,19 @@ public class ConcatenatingInput implements Input {
 
     @Override
     public long remaining() {
-        if (inputCloseableIterator.hasNext()) {
-            if (currentInput == null) {
-                this.currentInput = inputCloseableIterator.next();
-                if (inputCloseableIterator.hasNext()) {
-                    return -1;
-                } else {
-                    return currentInput.remaining();
-                }
-            } else {
-                return -1;
-            }
-        } else {
-            if (currentInput == null) {
+        if (currentInput == null) {
+            @Nullable Input next = inputSerie.next();
+            if (next == null) {
                 return 0;
-            } else {
-                return currentInput.remaining();
             }
+            this.currentInput = next;
         }
+        return -1;
     }
 
     @Override
     public void close() {
-        inputCloseableIterator.close();
+        inputSerie.close();
         if (currentInput != null) {
             currentInput.close();
             this.currentInput = null;
