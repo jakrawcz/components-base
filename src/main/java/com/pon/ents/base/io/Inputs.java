@@ -4,12 +4,15 @@ import com.pon.ents.base.io.impl.ByteArrayInput;
 import com.pon.ents.base.io.impl.ByteInput;
 import com.pon.ents.base.io.impl.ConcatenatingInput;
 import com.pon.ents.base.io.impl.EmptyInput;
+import com.pon.ents.base.io.impl.InputIoBufferSerie;
 import com.pon.ents.base.io.impl.LimitedInput;
 import com.pon.ents.base.serie.Serie;
 import com.pon.ents.base.serie.Series;
 import com.pon.ents.base.serie.impl.OpenedResourceClosingSerie;
 
 public abstract class Inputs {
+
+    private static final int DEFAULT_SERIE_BUFFER_LENGTH = 16 * 1024;
 
     /**
      * Returns an {@link Input} reading directly (not safe-copying) from the given byte array, from the given offset up
@@ -88,5 +91,29 @@ public abstract class Inputs {
      */
     public static Input limit(Input input, long limit) {
         return new LimitedInput(input, limit);
+    }
+
+    /**
+     * Performs a {@link #toIoBufferSerie(Input, int)} with a buffer of length {@value #DEFAULT_SERIE_BUFFER_LENGTH}.
+     */
+    public static Serie<IoBuffer> toIoBufferSerie(Input input) {
+        return toIoBufferSerie(input, DEFAULT_SERIE_BUFFER_LENGTH);
+    }
+
+    /**
+     * Performs a {@link #toIoBufferSerie(Input, byte[])} with a newly allocated buffer of the given size.
+     */
+    private static Serie<IoBuffer> toIoBufferSerie(Input input, int bufferLength) {
+        return toIoBufferSerie(input, IoBuffers.allocate(bufferLength));
+    }
+
+    /**
+     * Returns a {@link Serie} of {@link IoBuffer}s containing bytes of the given {@link Input}.
+     * <p>
+     * The previous {@link IoBuffer} needs to be fully handled before the {@link Serie#next() next one} is requested,
+     * since at least the underlying {@link IoBuffer#buffer() array} will always be reused.
+     */
+    private static Serie<IoBuffer> toIoBufferSerie(Input input, IoBuffer buffer) {
+        return new InputIoBufferSerie(input, buffer);
     }
 }

@@ -18,7 +18,7 @@ import com.pon.ents.base.serie.impl.ExternallyCloseableIteratorSerie;
 public abstract class Series {
 
     /**
-     * A {@link CloseableIterator}-enabled counterpart of {@link Collections#emptyIterator}.
+     * A {@link Serie} counterpart of {@link Collections#emptyIterator}.
      */
     public static <T> Serie<T> empty() {
         return new EmptySerie<>();

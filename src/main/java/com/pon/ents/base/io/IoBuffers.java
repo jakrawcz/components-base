@@ -7,6 +7,13 @@ import com.google.common.primitives.UnsignedBytes;
 public abstract class IoBuffers {
 
     /**
+     * Constructs an empty {@link IoBuffer} of the given length.
+     */
+    public static IoBuffer allocate(int length) {
+        return wrap(new byte[length]);
+    }
+
+    /**
      * Constructs an {@link IoBuffer} directly.
      */
     public static IoBuffer wrap(byte[] buffer, int offset, int limit) {
